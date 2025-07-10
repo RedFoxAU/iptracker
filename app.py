@@ -25,23 +25,38 @@ def index():
 
 @app.route('/add', methods=['POST'])
 def add_service():
-    ip = request.form['ip']
-    hostname = request.form.get('hostname', '')
-    port = request.form['port']
-    service = request.form['service']
-    
-    new_service = Service(ip=ip, hostname=hostname, port=port, service=service)
-    db.session.add(new_service)
-    db.session.commit()
-    flash('Service added successfully!', 'success')
-    return redirect(url_for('index'))
+    if request.method == 'POST':
+        ip = request.form.get('ip', '').strip()
+        hostname = request.form.get('hostname', '').strip()
+        port = request.form.get('port', '').strip()
+        service = request.form.get('service', '').strip()
+        
+        if not ip or not port or not service:
+            flash('Please fill in all required fields (IP, Port, and Service)', 'error')
+            return redirect(url_for('index'))
+        
+        try:
+            port = int(port)
+            if port < 1 or port > 65535:
+                flash('Port must be between 1 and 65535', 'error')
+                return redirect(url_for('index'))
+        except ValueError:
+            flash('Port must be a valid number', 'error')
+            return redirect(url_for('index'))
+        
+        new_service = Service(ip=ip, hostname=hostname, port=port, service=service)
+        db.session.add(new_service)
+        db.session.commit()
+        flash('Service added successfully!', 'success')
+        return redirect(url_for('index'))
 
-@app.route('/delete/<int:id>')
+@app.route('/delete/<int:id>', methods=['POST'])
 def delete_service(id):
-    service = Service.query.get_or_404(id)
-    db.session.delete(service)
-    db.session.commit()
-    flash('Service deleted successfully!', 'success')
+    if request.method == 'POST':
+        service = Service.query.get_or_404(id)
+        db.session.delete(service)
+        db.session.commit()
+        flash('Service deleted successfully!', 'success')
     return redirect(url_for('index'))
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -60,4 +75,4 @@ def edit_service(id):
     return render_template('edit.html', service=service)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='127.0.0.1', port=5003, debug=True)
